@@ -1,0 +1,11 @@
+library(MRcML)
+#run MRcML
+#dat: information of IVs after harmonization from the Package "TwoSampleMR"
+ans_cML = mr_cML(dat$beta.exposure,
+                 dat$beta.outcome,
+                 dat$se.exposure,
+                 dat$se.outcome,
+                 n=202323,
+                 random_start=100,
+                 random_seed=2023)
+ans_cML
