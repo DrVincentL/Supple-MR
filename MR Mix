@@ -1,0 +1,38 @@
+library(MRMix)
+library(dplyr)
+
+TS_Mix <- function(dat, xtype, ytype)
+{
+  data = dat %>% dplyr::select(SNP, chr, bp = pos, EA.x = effect_allele.exposure, NEA.x = other_allele.exposure,
+                               nx = samplesize.exposure, beta.x = beta.exposure, se.x = se.exposure, EAF.x = eaf.exposure,
+                               EA.y = effect_allele.outcome, NEA.y = other_allele.outcome, beta.y = beta.outcome, se.y = se.outcome, EAF.y = eaf.outcome, ny = samplesize.outcome)  
+  # Check if the alleles are the same for X and Y
+  data %>% filter(!((EA.x==EA.y&NEA.x==NEA.y) | (EA.x==NEA.y&NEA.x==EA.y))) %>% nrow()
+  
+  # Exclude alleles which are not the same
+  data = data %>% filter((EA.x==EA.y&NEA.x==NEA.y) | (EA.x==NEA.y&NEA.x==EA.y))
+  
+  # Check if the alleles are the same for X and Y
+  data %>% filter(!((EA.x==EA.y&NEA.x==NEA.y) | (EA.x==NEA.y&NEA.x==EA.y))) %>% nrow()
+  
+  #检查回文SNP的等位基因频率
+  data %>% filter((EA.x=="A"&NEA.x=="T") | (EA.x=="T"&NEA.x=="A") | (EA.x=="G"&NEA.x=="C") | (EA.x=="C"&NEA.x=="G")) %>%
+    dplyr::select(SNP, EA.x, NEA.x, EAF.x, EA.y, NEA.y, EAF.y)
+  
+
+  data = data %>% mutate(beta.y = ifelse(EA.x==EA.y,beta.y,-beta.y), MAF = pmin(EAF.x,1-EAF.x))
+  
+  data_std = with(data, standardize(beta.x,beta.y,se.x,se.y,xtype, ytype, nx = nx, ny = ny, MAF = MAF))
+  
+  res = MRMix(data_std$betahat_x_std, data_std$betahat_y_std, data_std$sx_std, data_std$sy_std, profile = TRUE)
+  str(res)
+  
+  
+  plot(res$profile_mat[,"theta"], res$profile_mat[,"pi0"], xlab = "theta", ylab = "pi0", type = "l")
+  abline(v = res$theta, lty = 2, col = "red")
+  
+  return(S4Vectors::SimpleList(out))
+}
+
+#xtype/ytype = continuous/binary
+TS_Mix(dat, xtype, ytype)
